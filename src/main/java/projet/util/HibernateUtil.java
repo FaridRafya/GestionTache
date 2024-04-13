@@ -1,51 +1,50 @@
 package projet.util;
 
 
-import java.util.Properties;
 
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
-import org.hibernate.cfg.Environment;
 import org.hibernate.service.ServiceRegistry;
 
-import projet.entities.User;
+
 public class HibernateUtil {
+	private static final SessionFactory sessionFactory = buildSessionFactory();
+	private static  ServiceRegistry serviceRegistry;
+	private static Session session = null ;
 
-	 private static SessionFactory sessionFactory;
+    private static SessionFactory buildSessionFactory() {
+        try {
+            // Créer la configuration en chargeant le fichier hibernate.cfg.xml
+            Configuration configuration = new Configuration().configure("config/hibernate.cfg.xml");
+            
+            // Créer un registre de services avec la configuration
+            StandardServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
+                    .applySettings(configuration.getProperties()).build();
+            
+            // Créer une SessionFactory avec la configuration et le registre de services
+            return configuration.buildSessionFactory(serviceRegistry);
+        } catch (Throwable ex) {
+            // Gestion des erreurs de création de la SessionFactory, telles que des erreurs de configuration ou de connexion à la base de données.
+            System.err.println("Initial SessionFactory creation failed." + ex);
+            throw new ExceptionInInitializerError(ex);
+        }
+    }
 
-	    public static SessionFactory getSessionFactory() {
-	        if (sessionFactory == null) {
-	            try {
-	                Configuration configuration = new Configuration();
+    public static SessionFactory getSessionFactory() {
+        return sessionFactory;
+    }
+    public static Session openSession() {
+    	return sessionFactory.openSession();
+    }
+    
+    public  Session getCurrentSession() {
+    	return sessionFactory.getCurrentSession();
+    }
 
-	                // Hibernate settings equivalent to hibernate.cfg.xml's properties
-	                Properties settings = new Properties();
-	                settings.put(Environment.DRIVER, "com.mysql.jdbc.Driver");
-	                settings.put(Environment.URL, "jdbc:mysql://localhost:3306/demo?useSSL=false");
-	                settings.put(Environment.USER, "root");
-	                settings.put(Environment.PASS, "root");
-	                settings.put(Environment.DIALECT, "org.hibernate.dialect.MySQL5Dialect");
-
-	                settings.put(Environment.SHOW_SQL, "true");
-
-	                settings.put(Environment.CURRENT_SESSION_CONTEXT_CLASS, "thread");
-
-	                settings.put(Environment.HBM2DDL_AUTO, "create-drop");
-
-	                configuration.setProperties(settings);
-	                configuration.addAnnotatedClass(User.class);
-
-	                ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
-	                    .applySettings(configuration.getProperties()).build();
-	                System.out.println("Hibernate Java Config serviceRegistry created");
-	                sessionFactory = configuration.buildSessionFactory(serviceRegistry);
-	                return sessionFactory;
-
-	            } catch (Exception e) {
-	                e.printStackTrace();
-	            }
-	        }
-	        return sessionFactory;
-	    }
-	}
+    public static void shutdown() {
+        // Ferme la SessionFactory, libère toutes les ressources.
+        getSessionFactory().close();
+    }  }
